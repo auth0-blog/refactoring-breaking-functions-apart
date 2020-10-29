@@ -1,44 +1,31 @@
 import axios from 'axios';
 import { promises as fs } from 'fs';
+import { Suggestion, evalTerm, reducer, ApiResult } from './logic';
 
-type ApiResult = Array<{ meanings: Array<{ partOfSpeech: string }> }>;
-
-async function isConjunctionFn(term: string) {
-  const result = await axios.get<ApiResult>(
-    `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(term)}`
-  );
-
-  const agg = result.data.flatMap(term => term.meanings.map(m => m.partOfSpeech));
-
-  return agg.some(m => m === 'conjunction');
-}
-
-export async function processWord(
-  word: string,
-  isConjunction: (term: string) => Promise<boolean> = isConjunctionFn
-) {
-  if (word === 'and') {
-    console.warn(`Consider removing the comma before '${word}'`);
-    return true;
-  } else {
-    const isConjunctionTerm = await isConjunction(word);
-
-    if (!isConjunctionTerm) {
-      console.warn(`Consider adding a conjunction before '${word}'`);
-    }
-  }
-}
+export const fetchDictionaryTerm = (term: string) =>
+  axios
+    .get<ApiResult>(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(term)}`)
+    .then(r => r.data);
 
 async function program() {
   const data = await fs.readFile('./document.txt', 'utf-8');
   const words = data.split(' ');
-  let acc = '';
 
-  words.forEach(async word => {
-    if (acc.endsWith(',')) processWord(word);
+  async function evalRemoteTerm(suggestion: Suggestion): Promise<Suggestion> {
+    const termResult = await fetchDictionaryTerm(suggestion.target);
 
-    acc = acc.concat(' ', word);
-  }, '');
+    return evalTerm(suggestion, termResult);
+  }
+
+  const suggestions = await Promise.all<Suggestion>(
+    words
+      .reduce<Suggestion[]>(reducer, [])
+      .map(suggestion => (suggestion.type === 'FETCH' ? evalRemoteTerm(suggestion) : suggestion))
+  );
+
+  suggestions.forEach(s =>
+    console.warn(`Consider ${s.type === 'REMOVE' ? 'removing the comma in' : 'adding a conjunction after'} '${s.parent}'`)
+  );
 }
 
 if (require.main === module) program();

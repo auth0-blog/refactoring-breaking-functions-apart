@@ -1,22 +1,55 @@
-import { processWord } from '../index';
+import { isAnd, evalTerm, reducer } from '../logic';
 
-describe('#processWord', () => {
-  it('returns true when feed with a conjunction', () => {
-    expect(processWord('and', jest.fn().mockResolvedValue(true))).toBeTruthy();
+describe('#isAnd', () => {
+  it.each(['and', 'AND'])('returns true when feed with any AND casing', w => {
+    expect(isAnd(w)).toBeTruthy();
+  });
+});
+
+describe('#evalTerm', () => {
+  describe('when the current term is a conjuction', () => {
+    const r = evalTerm({ type: 'FETCH', target: 'and', parent: 'plane' }, [
+      { meanings: [{ partOfSpeech: 'conjunction' }] },
+    ]);
+    it('should return a replace suggestion', () => {
+      expect(r).toHaveProperty('type', 'REPLACE');
+    });
   });
 
-  it('returns false when feed with another conjunction', () => {
-    expect(processWord('hello', jest.fn().mockResolvedValue(false))).toBeTruthy();
+  describe('when the current term is not conjuction', () => {
+    const r = evalTerm({ type: 'FETCH', target: 'hello', parent: 'plane' }, [{ meanings: [{ partOfSpeech: 'noun' }] }]);
+    it('should not touch the current suggestion', () => {
+      expect(r).toHaveProperty('type', 'FETCH');
+    });
+  });
+});
+
+describe('#reducer', () => {
+  describe('when the current part does not end with comma', () => {
+    const result = reducer([], 'complex', 1, ['is', 'complex', 'to']);
+
+    it('should not suggest anything', () => {
+      expect(result).toHaveLength(0);
+    });
   });
 
-  it('does not call the API when feed with and', () => {
-    const conjSpy = jest.fn().mockResolvedValue(false);
+  describe('when the current part does ends with comma', () => {
+    describe('when the current word is AND', () => {
+      const result = reducer([], 'and', 2, ['is', 'complex,', 'and']);
 
-    const result = processWord('and', conjSpy);
+      it('should suggest a removal', () => {
+        expect(result).toHaveLength(1);
+        expect(result[0]).toHaveProperty('type', 'REMOVE')
+      });
+    })
 
-    expect(processWord('and', jest.fn().mockResolvedValue(false))).toBeTruthy();
-    expect(conjSpy).not.toHaveBeenCalled();
+    describe('when the current word is not AND', () => {
+      const result = reducer([], 'because', 2, ['is', 'complex,', 'because']);
 
-    return expect(result).resolves.toBeTruthy();
+      it('should suggest a fetch', () => {
+        expect(result).toHaveLength(1);
+        expect(result[0]).toHaveProperty('type', 'FETCH')
+      });
+    })
   });
 });
