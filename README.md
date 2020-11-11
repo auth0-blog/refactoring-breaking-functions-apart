@@ -1,25 +1,38 @@
 # Break functions apart
 
-This repository is companion of the relative article you can read on the [Auth0 Blog](https://blog.auth0.com)
+This repository is companion of the relative article [Refactoring by Breaking Functions Apart: a TypeScript Experiment](https://auth0.com/blog/refactoring-breaking-functions-apart-typescript/)
 
 ### Install
 
-You can either use npm or yarn:
+You can either use `npm` or `yarn`:
 
-`npm install`
+```bash
+npm install
+```
 
 or
 
-`yarn`
+```bash
+yarn
+```
 
 ### Run
 
-Just use the regular start command of your favorite package manager
+Just use the regular start command of your favorite package manager, e.g.:
+
+```bash
+npm start
+```
 
 ### Test
 
-Just use the regular test command of your favorite package manager
+Just use the regular test command of your favorite package manager, e.g.:
 
-### Refactor
+```bash
+npm test
+```
 
-You can find the refactored version in the `refactor` branch
+### Refactored version
+
+You can find the refactored version in the `refactored` branch
+
